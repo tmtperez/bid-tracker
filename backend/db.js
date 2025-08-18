@@ -39,6 +39,16 @@ const poolConfig = useUrl
       password: PGPASSWORD,
       ssl,
     };
+    
+// TEMP DEBUG — remove after it works
+console.log('DB_SNAPSHOT', {
+  useUrl,
+  hasDbUrl: !!DATABASE_URL,
+  dbUrlLen: (DATABASE_URL || '').length,
+  DB_SSL,
+  hasCA: !!DB_SSL_CA_PEM,
+  sslObject: ssl
+});
 
 export const pool = new pg.Pool(poolConfig);
 export const query = (text, params) => pool.query(text, params);
