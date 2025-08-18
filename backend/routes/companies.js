@@ -1,17 +1,15 @@
-import express from 'express';
-import { query } from '../db.js';
+import { Router } from "express";
+import { query } from "../db.js";   // <-- use the shared pool with SSL set there
 
-const router = express.Router();
+const router = Router();
 
-router.get('/', async (req, res) => {
-  const { rows } = await query('SELECT * FROM companies ORDER BY name');
-  res.json(rows);
-});
-
-router.post('/', async (req, res) => {
-  const { name } = req.body;
-  const { rows } = await query('INSERT INTO companies (name) VALUES ($1) RETURNING *', [name]);
-  res.status(201).json(rows[0]);
+router.get("/", async (req, res, next) => {
+  try {
+    const { rows } = await query("SELECT * FROM companies ORDER BY id DESC");
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

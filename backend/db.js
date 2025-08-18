@@ -2,16 +2,11 @@
 import pg from "pg";
 const { Pool } = pg;
 
-const { DATABASE_URL } = process.env;
+const { DATABASE_URL, DATABASE_CA_CERT } = process.env;
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
 
-// DO Managed Postgres: accept their cert (or swap to CA verify later)
-export const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const ssl = DATABASE_CA_CERT ? { ca: DATABASE_CA_CERT } : { rejectUnauthorized: false };
 
-// helper so routes can do: import { query } from '../db.js'
+export const pool = new Pool({ connectionString: DATABASE_URL, ssl });
 export const query = (text, params) => pool.query(text, params);
-
 export default pool;
