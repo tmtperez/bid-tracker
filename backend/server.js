@@ -12,6 +12,13 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN, credentials: false }));
 app.use(express.json());
 
+// strip "/api" prefix so existing routes like "/bids" still work
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api/')) req.url = req.url.slice(4); // "/api/bids" -> "/bids"
+  else if (req.url === '/api') req.url = '/';                  // exact "/api" -> "/"
+  next();
+});
+
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
