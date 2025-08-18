@@ -8,45 +8,24 @@ const {
   PGDATABASE = 'bidtracker',
   PGUSER = 'do_admin',
   PGPASSWORD = 'supersecure',
-  // 'disable' | 'no-verify' | 'require'
-  DB_SSL_MODE = 'disable',
+  // set to 'true' on DigitalOcean Managed PG
+  DB_SSL = 'false',
 } = process.env;
 
-function sslFromMode(mode) {
-  switch ((mode || '').toLowerCase()) {
-    case 'disable':
-    case 'false':
-    case 'off':
-      return false;
-    case 'require':
-    case 'verify-full':
-      return { rejectUnauthorized: true };
-    case 'no-verify':
-    case 'require-nv':
-    case 'true':
-      return { rejectUnauthorized: false };
-    default:
-      return false;
-  }
-}
-const ssl = sslFromMode(DB_SSL_MODE);
+const ssl =
+  DB_SSL === 'true'
+    ? { rejectUnauthorized: false } // <- no-verify; avoids SELF_SIGNED_CERT_IN_CHAIN
+    : false;
 
-// Use DATABASE_URL only if it looks real: non-empty and has "://"
-const hasUrl =
+const useUrl =
   typeof DATABASE_URL === 'string' &&
   DATABASE_URL.trim() !== '' &&
   DATABASE_URL.includes('://');
 
-const poolConfig = hasUrl
-  ? { connectionString: DATABASE_URL, ssl }
-  : {
-      host: PGHOST,
-      port: Number(PGPORT),
-      database: PGDATABASE,
-      user: PGUSER,
-      password: PGPASSWORD,
-      ssl,
-    };
+export const pool = new pg.Pool(
+  useUrl
+    ? { connectionString: DATABASE_URL, ssl }
+    : { host: PGHOST, port: Number(PGPORT), database: PGDATABASE, user: PGUSER, password: PGPASSWORD, ssl }
+);
 
-export const pool = new pg.Pool(poolConfig);
 export const query = (text, params) => pool.query(text, params);
