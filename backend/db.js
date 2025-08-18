@@ -13,12 +13,16 @@ const {
   PGDATABASE = 'bidtracker',
   PGUSER = 'do_admin',
   PGPASSWORD = 'supersecure',
-  DB_SSL, // e.g. 'true', 'TRUE', '1', 'yes'
+  DB_SSL,            // e.g. 'true'
+  DB_SSL_CA_PEM,     // optional (used in Option 2)
 } = process.env;
 
-const useSSL = toBool(DB_SSL, false);
-// DO Managed PG: use SSL but skip verification (no CA bundle needed)
-const ssl = useSSL ? { rejectUnauthorized: false } : false;
+// If a CA is provided we verify; otherwise if DB_SSL is true we go no-verify.
+const ssl = DB_SSL_CA_PEM
+  ? { ca: DB_SSL_CA_PEM, rejectUnauthorized: true }
+  : toBool(DB_SSL, false)
+    ? { rejectUnauthorized: false }
+    : false;
 
 const useUrl =
   typeof DATABASE_URL === 'string' &&
@@ -26,7 +30,7 @@ const useUrl =
   DATABASE_URL.includes('://');
 
 const poolConfig = useUrl
-  ? { connectionString: DATABASE_URL.trim(), ssl } // ssl overrides URL's sslmode behavior
+  ? { connectionString: DATABASE_URL.trim(), ssl }
   : {
       host: PGHOST,
       port: Number(PGPORT),
