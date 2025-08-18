@@ -1,54 +1,15 @@
-// backend/db.js
-import pg from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 
-function toBool(v, def = false) {
-  if (v == null) return def;
-  return /^(1|true|yes|on)$/i.test(String(v).trim());
+const { DATABASE_URL } = process.env;
+if (!DATABASE_URL) throw new Error('DATABASE_URL is required');
+
+export const pool = new Pool({ connectionString: DATABASE_URL });
+
+export async function query(sql, params = []) {
+  const start = Date.now();
+  const res = await pool.query(sql, params);
+  const ms = Date.now() - start;
+  if (ms > 200) console.log(`[db] slow query ${ms}ms:`, sql);
+  return res;
 }
-
-const {
-  DATABASE_URL,
-  PGHOST = 'db',
-  PGPORT = '5432',
-  PGDATABASE = 'bidtracker',
-  PGUSER = 'do_admin',
-  PGPASSWORD = 'supersecure',
-  DB_SSL,            // e.g. 'true'
-  DB_SSL_CA_PEM,     // optional (used in Option 2)
-} = process.env;
-
-// If a CA is provided we verify; otherwise if DB_SSL is true we go no-verify.
-const ssl = DB_SSL_CA_PEM
-  ? { ca: DB_SSL_CA_PEM, rejectUnauthorized: true }
-  : toBool(DB_SSL, false)
-    ? { rejectUnauthorized: false }
-    : false;
-
-const useUrl =
-  typeof DATABASE_URL === 'string' &&
-  DATABASE_URL.trim() !== '' &&
-  DATABASE_URL.includes('://');
-
-const poolConfig = useUrl
-  ? { connectionString: DATABASE_URL.trim(), ssl }
-  : {
-      host: PGHOST,
-      port: Number(PGPORT),
-      database: PGDATABASE,
-      user: PGUSER,
-      password: PGPASSWORD,
-      ssl,
-    };
-    
-// TEMP DEBUG — remove after it works
-console.log('DB_SNAPSHOT', {
-  useUrl,
-  hasDbUrl: !!DATABASE_URL,
-  dbUrlLen: (DATABASE_URL || '').length,
-  DB_SSL,
-  hasCA: !!DB_SSL_CA_PEM,
-  sslObject: ssl
-});
-
-export const pool = new pg.Pool(poolConfig);
-export const query = (text, params) => pool.query(text, params);

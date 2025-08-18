@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getCompanies, createBid, updateBid } from '../api'; // ensure api.js exists
+import { getCompanies, createBid, updateBid } from '../api';
 
 export default function BidForm({ editing, onSaved }) {
   const [companies, setCompanies] = useState([]);
