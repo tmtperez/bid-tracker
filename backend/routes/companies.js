@@ -1,11 +1,12 @@
-import { Router } from "express";
-import { query } from "../db.js";   // <-- use the shared pool with SSL set there
+// backend/routes/companies.js
+import { Router } from 'express';
+import { query } from '../db.js';
 
 const router = Router();
 
-router.get("/", async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const { rows } = await query("SELECT * FROM companies ORDER BY id DESC");
+    const { rows } = await query('SELECT * FROM public.companies ORDER BY id DESC');
     res.json(rows);
   } catch (err) {
     next(err);

@@ -1,3 +1,4 @@
+// backend/server.js
 import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
@@ -12,10 +13,9 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN, credentials: false }));
 app.use(express.json());
 
-// strip "/api" prefix so existing routes like "/bids" still work
 app.use((req, res, next) => {
-  if (req.url.startsWith('/api/')) req.url = req.url.slice(4); // "/api/bids" -> "/bids"
-  else if (req.url === '/api') req.url = '/';                  // exact "/api" -> "/"
+  if (req.url.startsWith('/api/')) req.url = req.url.slice(4);
+  else if (req.url === '/api') req.url = '/';
   next();
 });
 
@@ -29,10 +29,14 @@ app.get('/health', async (req, res) => {
 });
 
 app.get('/dashboard', async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM v_dashboard');
-  const d = rows[0] || { active_pipeline_value: 0, total_won: 0, count_won: 0, count_lost: 0 };
-  const winLossRatio = d.count_lost === 0 ? (d.count_won > 0 ? 1 : 0) : Number(d.count_won) / Number(d.count_lost);
-  res.json({ ...d, win_loss_ratio: winLossRatio });
+  try {
+    const { rows } = await pool.query('SELECT * FROM v_dashboard');
+    const d = rows[0] || { active_pipeline_value: 0, total_won: 0, count_won: 0, count_lost: 0 };
+    const winLossRatio = d.count_lost === 0 ? (d.count_won > 0 ? 1 : 0) : Number(d.count_won) / Number(d.count_lost);
+    res.json({ ...d, win_loss_ratio: winLossRatio });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load dashboard' });
+  }
 });
 
 app.use('/bids', bids);
