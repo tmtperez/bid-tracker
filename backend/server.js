@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
+import { ensureSchema } from './initdb.js';
 import bids from './routes/bids.js';
 import companies from './routes/companies.js';
 import scopes from './routes/scopes.js';
@@ -43,4 +44,10 @@ app.use('/bids', bids);
 app.use('/companies', companies);
 app.use('/scopes', scopes);
 
-app.listen(PORT, () => console.log(`API listening on :${PORT}`));
+// ⬇️ ensure schema before listening
+ensureSchema()
+  .then(() => app.listen(PORT, () => console.log(`API listening on :${PORT}`)))
+  .catch((e) => {
+    console.error('Schema init failed:', e);
+    process.exit(1);
+  });
