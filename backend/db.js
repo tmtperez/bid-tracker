@@ -8,11 +8,10 @@ const {
   PGDATABASE = 'bidtracker',
   PGUSER = 'do_admin',
   PGPASSWORD = 'supersecure',
-  // New: flexible SSL mode. One of: 'disable' | 'require' | 'no-verify'
+  // 'disable' | 'no-verify' | 'require'
   DB_SSL_MODE = 'disable',
 } = process.env;
 
-// Map our mode to node-postgres options
 function sslFromMode(mode) {
   switch ((mode || '').toLowerCase()) {
     case 'disable':
@@ -21,22 +20,24 @@ function sslFromMode(mode) {
       return false;
     case 'require':
     case 'verify-full':
-      // This enforces verification (you must also supply a CA via 'ssl.ca' to actually pass)
       return { rejectUnauthorized: true };
     case 'no-verify':
     case 'require-nv':
-    case 'require-no-verify':
-    case 'true': // treat true as no-verify for DO convenience
+    case 'true':
       return { rejectUnauthorized: false };
     default:
       return false;
   }
 }
-
 const ssl = sslFromMode(DB_SSL_MODE);
 
-// Prefer DATABASE_URL when present (App Platform)
-const poolConfig = DATABASE_URL
+// Use DATABASE_URL only if it looks real: non-empty and has "://"
+const hasUrl =
+  typeof DATABASE_URL === 'string' &&
+  DATABASE_URL.trim() !== '' &&
+  DATABASE_URL.includes('://');
+
+const poolConfig = hasUrl
   ? { connectionString: DATABASE_URL, ssl }
   : {
       host: PGHOST,
