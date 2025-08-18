@@ -1,18 +1,10 @@
+import fs from "fs";
 import pg from "pg";
 const { Pool } = pg;
 
-const { DATABASE_URL } = process.env;
-if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
+const ca = fs.readFileSync(new URL("./do-ca.crt", import.meta.url), "utf8");
 
 export const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // <— allow DO's managed cert
+  connectionString: process.env.DATABASE_URL,
+  ssl: { ca }, // verifies using DO's CA
 });
-
-export async function query(sql, params = []) {
-  const start = Date.now();
-  const res = await pool.query(sql, params);
-  const ms = Date.now() - start;
-  if (ms > 200) console.log(`[db] slow query ${ms}ms:`, sql);
-  return res;
-}
