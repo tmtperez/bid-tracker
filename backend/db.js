@@ -47,7 +47,7 @@ export async function query(sql, params = []) {
   return res;
 }
 
-// One-time probe so we can see the TLS verdict
+// One-time probe so we can see the TLS verdict //
 (async () => {
   try {
     const client = await pool.connect();
