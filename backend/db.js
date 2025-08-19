@@ -13,12 +13,14 @@ const urlWithSsl =
   : DATABASE_URL + (DATABASE_URL.includes('?') ? '&' : '?') + 'sslmode=require';
 
 // Parse bundle into one-or-many certs
-const caPem = toPem(DATABASE_CA_CERT);
+const caPem = toPem(process.env.DATABASE_CA_CERT);
+// split into all certs if it's a bundle
 const caBlocks = (caPem.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) || [])
   .map(b => b.trim());
 
 // SSL options
 const { hostname } = new URL(urlWithSsl.replace('postgres://', 'http://'));
+
 const ssl = caBlocks.length > 1
   ? { ca: caBlocks, rejectUnauthorized: true, servername: hostname }
   : { ca: caPem,    rejectUnauthorized: true, servername: hostname };
