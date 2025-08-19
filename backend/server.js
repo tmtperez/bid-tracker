@@ -12,6 +12,19 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN, credentials: false }));
 app.use(express.json());
 
+// in your server file
+import { query } from './db.js';
+app.get('/api/health', async (_req, res) => {
+  try {
+    const r = await query('select 1 as ok;');
+    res.json({ ok: true, db: r.rows[0].ok === 1 });
+  } catch (e) {
+    console.error('[health] DB error:', e.code, e.message);
+    res.status(500).json({ ok: false, code: e.code, error: e.message });
+  }
+});
+
+
 // If your DO ingress routes backend at /api/*, make the server tolerant of it.
 app.use((req, _res, next) => {
   if (req.url.startsWith('/api/')) req.url = req.url.slice(4); // "/api/bids" -> "/bids"
