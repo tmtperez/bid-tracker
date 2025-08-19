@@ -22,6 +22,23 @@ if (DATABASE_CA_CERT && DATABASE_CA_CERT.trim()) {
   ssl = { rejectUnauthorized: false };
 }
 
+// --- DEBUG SNAPSHOT (safe to log) ---
+const SNAP = {
+  hasUrl: !!process.env.DATABASE_URL,
+  urlHasSslmode: (process.env.DATABASE_URL || '').includes('sslmode='),
+  caLen: (process.env.DATABASE_CA_CERT || '').length,
+  caStartsWith: (process.env.DATABASE_CA_CERT || '').slice(0, 30),
+  caEndsWith: (process.env.DATABASE_CA_CERT || '').slice(-30),
+  // after normalization
+};
+console.log('DB_SNAPSHOT {', 
+  `hasUrl: ${SNAP.hasUrl},`,
+  `urlHasSslmode: ${SNAP.urlHasSslmode},`,
+  `caLen: ${SNAP.caLen},`,
+  `caStartsWith: ${JSON.stringify(SNAP.caStartsWith)},`,
+  `caEndsWith: ${JSON.stringify(SNAP.caEndsWith)}`,
+'}');
+
 export const pool = new Pool({ connectionString: urlWithSsl, ssl });
 
 export async function query(sql, params = []) {
