@@ -15,16 +15,12 @@ const urlWithSsl =
 // Extract hostname for SNI (Node uses this in TLS handshake)
 const { hostname, port } = new URL(urlWithSsl.replace('postgres://', 'http://'));
 
-const caPem = toPem(DATABASE_CA_CERT || '');
+const caPem = (process.env.DATABASE_CA_CERT || '').replace(/\\n/g, '\n');
 const hasCA = !!caPem && !!caPem.trim();
 
 // after computing caPem, hostname, urlWithSsl…
-const ssl = {
-  ca: caPem,                  // pass the PEM string (not array)
-  rejectUnauthorized: true,   // enforce verification
-  servername: hostname,       // ensure SNI matches *.db.ondigitalocean.com
-};
-
+const ssl = { ca: caPem };           // just the PEM string
+// (pg/Node enables verification when 'ca' is provided)
 
 console.log('DB_SNAPSHOT', {
   hasUrl: true,
