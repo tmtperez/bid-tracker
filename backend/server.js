@@ -8,7 +8,6 @@ import scopes from './routes/scopes.js';
 const app = express();
 const PORT = process.env.PORT || 8080;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
-const db = require('./db');
 
 app.use(cors({ origin: CORS_ORIGIN, credentials: false }));
 app.use(express.json());
