@@ -12,7 +12,14 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN, credentials: false }));
 app.use(express.json());
 
-app.get('/health', async (req, res) => {
+// If your DO ingress routes backend at /api/*, make the server tolerant of it.
+app.use((req, _res, next) => {
+  if (req.url.startsWith('/api/')) req.url = req.url.slice(4); // "/api/bids" -> "/bids"
+  else if (req.url === '/api') req.url = '/';
+  next();
+});
+
+app.get('/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
     res.json({ ok: true });
@@ -21,7 +28,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-app.get('/dashboard', async (req, res) => {
+app.get('/dashboard', async (_req, res) => {
   const { rows } = await pool.query('SELECT * FROM v_dashboard');
   const d = rows[0] || { active_pipeline_value: 0, total_won: 0, count_won: 0, count_lost: 0 };
   const winLossRatio = d.count_lost === 0 ? (d.count_won > 0 ? 1 : 0) : Number(d.count_won) / Number(d.count_lost);
