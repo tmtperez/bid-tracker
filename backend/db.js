@@ -18,7 +18,13 @@ const { hostname, port } = new URL(urlWithSsl.replace('postgres://', 'http://'))
 const caPem = toPem(DATABASE_CA_CERT || '');
 const hasCA = !!caPem && !!caPem.trim();
 
-const ssl = hasCA ? { ca: caPem } : false;
+// after computing caPem, hostname, urlWithSsl…
+const ssl = {
+  ca: caPem,                  // pass the PEM string (not array)
+  rejectUnauthorized: true,   // enforce verification
+  servername: hostname,       // ensure SNI matches *.db.ondigitalocean.com
+};
+
 
 console.log('DB_SNAPSHOT', {
   hasUrl: true,
