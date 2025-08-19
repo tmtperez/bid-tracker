@@ -39,6 +39,14 @@ console.log('DB_SNAPSHOT', {
 
 export const pool = new Pool({ connectionString: urlWithSsl, ssl });
 
+export async function query(sql, params = []) {
+  const t0 = Date.now();
+  const res = await pool.query(sql, params);
+  const ms = Date.now() - t0;
+  if (ms > 200) console.log(`[db] slow query ${ms}ms:`, sql);
+  return res;
+}
+
 // One-time probe so we can see the TLS verdict
 (async () => {
   try {

@@ -5,6 +5,8 @@ import { pool, query } from './db.js';
 import bids from './routes/bids.js';
 import companies from './routes/companies.js';
 import scopes from './routes/scopes.js';
+import { query } from '../db.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 8080;
