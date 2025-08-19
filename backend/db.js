@@ -4,12 +4,8 @@ const { Pool } = pkg;
 const { DATABASE_URL, NODE_ENV } = process.env;
 if (!DATABASE_URL) throw new Error('DATABASE_URL is required');
 
-// Enable SSL in production (DigitalOcean). The DO CA is self-signed;
-// rejectUnauthorized:false is the common setting for DO App Platform.
-const ssl =
-  NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }  // DO managed PG
-    : false;                          // local docker-compose: no SSL
+// DO Managed Postgres needs SSL. For local dev (docker-compose) keep it off.
+const ssl = NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 
 export const pool = new Pool({
   connectionString: DATABASE_URL,
