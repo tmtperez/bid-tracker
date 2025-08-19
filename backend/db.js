@@ -1,62 +1,52 @@
-// backend/db.js
+// db.js
 import pkg from 'pg';
 const { Pool } = pkg;
 
 const { DATABASE_URL, DATABASE_CA_CERT } = process.env;
 if (!DATABASE_URL) throw new Error('DATABASE_URL is required');
 
-// normalize \n for local .env; on DO it will already be multiline
-const toPem = (s) => (s ? s.replace(/\\n/g, '\n') : undefined);
+const toPem = (s) => (s ? s.replace(/\\n/g, '\n') : '');
 
+// always require TLS in URL
 const urlWithSsl =
   DATABASE_URL.includes('sslmode=') ? DATABASE_URL
   : DATABASE_URL + (DATABASE_URL.includes('?') ? '&' : '?') + 'sslmode=require';
 
-// Extract hostname for SNI (Node uses this in TLS handshake)
-const { hostname, port } = new URL(urlWithSsl.replace('postgres://', 'http://'));
+const caPem = toPem(DATABASE_CA_CERT);
 
-const caPem = (process.env.DATABASE_CA_CERT || '').replace(/\\n/g, '\n');
-const hasCA = !!caPem && !!caPem.trim();
+// Extract ALL cert blocks if it’s a bundle
+const caBlocks = (caPem.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) || [])
+  .map(b => b.trim());
 
-// after computing caPem, hostname, urlWithSsl…
-const ssl = { ca: caPem };           // just the PEM string
-// (pg/Node enables verification when 'ca' is provided)
+// Build SSL opts (array if multiple, string if one)
+const ssl = caBlocks.length > 1
+  ? { ca: caBlocks, rejectUnauthorized: true }
+  : { ca: caPem,    rejectUnauthorized: true };
+
+// (Optional but harmless) set SNI host explicitly
+const { hostname } = new URL(urlWithSsl.replace('postgres://', 'http://'));
+ssl.servername = hostname;
 
 console.log('DB_SNAPSHOT', {
-  hasUrl: true,
   urlHasSslmode: urlWithSsl.includes('sslmode=require'),
   host: hostname,
-  port,
-  caLen: (DATABASE_CA_CERT || '').length,
-  caFirstLine: caPem ? caPem.split('\n')[0] : null,
-  caLastLine: caPem ? caPem.trim().split('\n').slice(-1)[0] : null,
-  usingStrictTLS: hasCA,
+  caBlocks: caBlocks.length,
+  firstLine: caBlocks[0]?.split('\n')[0] || caPem.split('\n')[0],
+  lastLine: (caBlocks[caBlocks.length-1] || caPem).trim().split('\n').slice(-1)[0],
 });
 
 export const pool = new Pool({ connectionString: urlWithSsl, ssl });
 
-export async function query(sql, params = []) {
-  const t0 = Date.now();
-  const res = await pool.query(sql, params);
-  const ms = Date.now() - t0;
-  if (ms > 200) console.log(`[db] slow query ${ms}ms:`, sql);
-  return res;
-}
-
-// One-time probe so we can see the TLS verdict //
+// one-time probe
 (async () => {
   try {
     const client = await pool.connect();
     await client.query('select 1');
     const s = client.connection?.stream;
-    const peer = s?.getPeerCertificate?.(true);
     console.log('[db] test-connect OK;', {
       tls: !!s?.encrypted,
       authorized: s?.authorized,
       authorizationError: s?.authorizationError || null,
-      servername: s?.servername || null,
-      peerCN: peer?.subject?.CN,
-      issuerCN: peer?.issuer?.CN,
     });
     client.release();
   } catch (e) {
